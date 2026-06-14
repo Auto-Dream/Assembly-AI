@@ -1,10 +1,11 @@
 import { useState, lazy, Suspense } from "react";
 import {
-  ArrowLeft, Brain, ChevronDown, CheckCircle2, Clock,
+  ArrowLeft, Brain, ChevronDown, CheckCircle2, Clock, Box,
 } from "lucide-react";
 import { ProcessResult } from "../lib/types";
 import { getTotalDuration, getStepColor } from "../lib/utils";
 import StepCard from "./AssemblyGuide/StepCard";
+import AskProduct from "./AskProduct";
 
 const AssemblyViewer3D = lazy(() => import("./AssemblyViewer3D"));
 
@@ -15,6 +16,7 @@ interface ResultsViewProps {
 
 export default function ResultsView({ result, onBack }: ResultsViewProps) {
   const [showInterpretation, setShowInterpretation] = useState(true);
+  const [show3D, setShow3D] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const totalDuration = getTotalDuration(result.steps);
   const totalTools = [...new Set(result.steps.flatMap((s) => s.tools))];
@@ -60,21 +62,14 @@ export default function ResultsView({ result, onBack }: ResultsViewProps) {
 
         <div className="space-y-5 animate-slide-up">
 
-          {/* 3D Assembly Viewer */}
-          <Suspense fallback={
-            <div className="w-full rounded-2xl border border-slate-800 bg-slate-950 flex items-center justify-center" style={{ height: "420px" }}>
-              <div className="text-center">
-                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm text-slate-400">Loading 3D viewer...</p>
-              </div>
-            </div>
-          }>
-            <AssemblyViewer3D
-              steps={result.steps}
-              activeStep={activeStep}
-              onStepChange={setActiveStep}
-            />
-          </Suspense>
+          {/* Ask about this product — the primary interaction */}
+          <AskProduct
+            imageData={result.imageData}
+            mimeType={result.mimeType}
+            language={result.language}
+            interpretation={result.interpretation}
+            title={result.title}
+          />
 
           {/* AI Interpretation */}
           {result.interpretation && (
@@ -87,7 +82,7 @@ export default function ResultsView({ result, onBack }: ResultsViewProps) {
                   <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
                     <Brain size={14} className="text-blue-400" />
                   </div>
-                  <span className="text-sm font-semibold text-white">AI Analysis Summary</span>
+                  <span className="text-sm font-semibold text-white">What this is</span>
                 </div>
                 <ChevronDown
                   size={15}
@@ -101,6 +96,44 @@ export default function ResultsView({ result, onBack }: ResultsViewProps) {
               )}
             </div>
           )}
+
+          {/* 3D Assembly Viewer — collapsed by default (optional visual aid) */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
+            <button
+              onClick={() => setShow3D((v) => !v)}
+              className="w-full flex items-center justify-between px-4 sm:px-5 py-4 hover:bg-slate-800/30 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
+                  <Box size={14} className="text-slate-400" />
+                </div>
+                <span className="text-sm font-semibold text-white">3D motion preview</span>
+                <span className="text-xs text-slate-600">(illustrative)</span>
+              </div>
+              <ChevronDown
+                size={15}
+                className={`text-slate-500 transition-transform duration-200 shrink-0 ${show3D ? "rotate-180" : ""}`}
+              />
+            </button>
+            {show3D && (
+              <div className="px-3 pb-3 animate-fade-in">
+                <Suspense fallback={
+                  <div className="w-full rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center" style={{ height: "420px" }}>
+                    <div className="text-center">
+                      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-sm text-slate-400">Loading 3D viewer...</p>
+                    </div>
+                  </div>
+                }>
+                  <AssemblyViewer3D
+                    steps={result.steps}
+                    activeStep={activeStep}
+                    onStepChange={setActiveStep}
+                  />
+                </Suspense>
+              </div>
+            )}
+          </div>
 
           {/* Step-by-step cards */}
           <div>

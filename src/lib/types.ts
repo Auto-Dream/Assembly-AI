@@ -31,6 +31,8 @@ export interface ProcessResult {
   steps: AssemblyStep[];
   promptUsed: string;
   isDemo: boolean;
+  imageData?: string;
+  mimeType?: string;
 }
 
 export type AppView = "home" | "processing" | "results";

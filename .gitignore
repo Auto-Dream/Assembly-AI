@@ -21,3 +21,12 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# local test artifacts (do not commit)
+test-grounding.mjs
+test-ask.mjs
+run-tests.py
+run-ask.py
+test-label.jpg
+dist/
+node_modules/
