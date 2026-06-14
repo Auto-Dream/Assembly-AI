@@ -31,7 +31,8 @@ export default function App() {
 
     let imageBase64 = "";
     try {
-      if (file.type.startsWith("image/")) {
+      // Both images AND PDFs are sent to the AI (Gemini accepts application/pdf inline).
+      if (file.type.startsWith("image/") || file.type === "application/pdf") {
         imageBase64 = await fileToBase64(file);
       }
       setProcessingProgress(30);
@@ -77,6 +78,8 @@ export default function App() {
         steps: data.steps,
         promptUsed: data.promptUsed || "",
         isDemo: false,
+        imageData: imageBase64,
+        mimeType: file.type,
       };
 
       try {
