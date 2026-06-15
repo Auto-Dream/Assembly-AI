@@ -1,6 +1,11 @@
 export type ActionType = "connect" | "screw" | "align" | "insert" | "attach" | "rotate" | "lift" | "place" | "tighten";
 export type Direction = "down" | "up" | "left" | "right" | "clockwise" | "counterclockwise" | null;
 
+export interface HardwareItem {
+  name: string;
+  count: number;
+}
+
 export interface AssemblyStep {
   number: number;
   title: string;
@@ -11,6 +16,8 @@ export interface AssemblyStep {
   actionType?: ActionType;
   parts?: string[];
   direction?: Direction;
+  hardware?: HardwareItem[];
+  stuckHint?: string | null;
 }
 
 export interface Session {
@@ -33,6 +40,8 @@ export interface ProcessResult {
   isDemo: boolean;
   imageData?: string;
   mimeType?: string;
+  toolsNeeded?: string[];
+  hardwareSummary?: HardwareItem[];
 }
 
 export type AppView = "home" | "processing" | "results";

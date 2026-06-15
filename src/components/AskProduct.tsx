@@ -17,6 +17,7 @@ interface AskProductProps {
   language: string;
   interpretation: string;
   title: string;
+  stepContext?: string;
 }
 
 const SUGGESTED = [
@@ -25,7 +26,7 @@ const SUGGESTED = [
   "What does each ingredient do?",
 ];
 
-export default function AskProduct({ imageData, mimeType, language, interpretation, title }: AskProductProps) {
+export default function AskProduct({ imageData, mimeType, language, interpretation, title, stepContext }: AskProductProps) {
   const [input, setInput] = useState("");
   const [history, setHistory] = useState<QA[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,7 +56,7 @@ export default function AskProduct({ imageData, mimeType, language, interpretati
           imageData,
           mimeType,
           language,
-          context: `Product: ${title}. ${interpretation}`,
+          context: `Product: ${title}. ${interpretation}${stepContext ? "\n" + stepContext : ""}`,
         }),
       });
       const data = await res.json().catch(() => ({ success: false }));

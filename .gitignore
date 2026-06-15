@@ -30,3 +30,5 @@ run-ask.py
 test-label.jpg
 dist/
 node_modules/
+test-extract.py
+_call.cjs

@@ -80,6 +80,8 @@ export default function App() {
         isDemo: false,
         imageData: imageBase64,
         mimeType: file.type,
+        toolsNeeded: data.toolsNeeded || [],
+        hardwareSummary: data.hardwareSummary || [],
       };
 
       try {
@@ -151,17 +153,17 @@ export default function App() {
             <div className="text-center mb-10 animate-slide-up">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-6">
                 <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-                AI-Powered Manual Converter
+                AI Furniture Assembly Guide
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight">
-                Turn Any Manual Into
+                Stuck building furniture?
                 <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-                  Step-by-Step Guide
+                  Scan the manual, get unstuck
                 </span>
               </h1>
               <p className="text-slate-400 text-lg max-w-xl mx-auto">
-                Upload or scan an assembly manual and get an interactive animated guide with AI-extracted steps.
+                Upload your assembly manual (photo or PDF) and get a clear step-by-step guide — with an "I'm stuck" helper for when a step won't cooperate.
               </p>
             </div>
 

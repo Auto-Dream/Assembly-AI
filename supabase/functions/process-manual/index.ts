@@ -30,6 +30,8 @@ interface Step {
   actionType: ActionType;
   parts: string[];
   direction: Direction;
+  hardware?: { name: string; count: number }[];
+  stuckHint?: string | null;
 }
 
 const VALID_ACTIONS: ActionType[] = ["connect", "screw", "align", "insert", "attach", "rotate", "lift", "place", "tighten"];
@@ -136,42 +138,48 @@ ${context ? `CONTEXT (already extracted from this product):\n${context}\n\n` : "
     }
 
     // =========================================================
-    // MODE: extract (default) — guided step extraction
+    // MODE: extract (default) — guided furniture-assembly build
     // =========================================================
-    const prompt = `You are an expert product-guidance assistant. You help people understand, set up, use, assemble, or troubleshoot a product from its instructions — you are NOT just a summarizer.
+    const prompt = `You are an expert furniture-assembly guide. The user is about to assemble a piece of furniture and has scanned its instruction manual (which may be MULTIPLE pages in a PDF, or one or more photos). Your job is to turn it into a clear, confidence-building, step-by-step build they can follow hands-on — NOT a summary.
 
-Analyze the provided image (an assembly manual, product label, instruction sheet, or similar) and produce structured, actionable guidance.
+Read ALL pages/images. Extract the full assembly sequence in order.
 
 Respond ONLY with valid JSON in this exact format — no markdown, no code fences, just raw JSON:
 {
-  "title": "Short descriptive title of the product/task (in ${langName})",
-  "interpretation": "2-3 sentences: what this product is, what the user is trying to accomplish, and the single most important thing to get right (in ${langName})",
+  "title": "What is being built (e.g. 'BILLY Bookcase')",
+  "interpretation": "2-3 sentences: what they're building, roughly how long/how hard, and the single most important thing to get right or the most common mistake.",
+  "toolsNeeded": ["screwdriver", "hammer"],
+  "hardwareSummary": [{"name": "wooden dowel", "count": 8}, {"name": "cam lock", "count": 6}],
   "steps": [
     {
       "number": 1,
-      "title": "Step title (in ${langName}, max 6 words)",
-      "instruction": "Clear, actionable instruction — phrased as guidance to the user, not a transcription (in ${langName}, 1-2 sentences)",
-      "duration": 4,
-      "tools": ["tool1"],
-      "warning": null,
-      "actionType": "connect",
-      "parts": ["part A", "part B"],
+      "title": "Step title (max 6 words)",
+      "instruction": "Clear hands-on instruction for THIS step, phrased as guidance (1-2 sentences).",
+      "duration": 60,
+      "tools": ["screwdriver"],
+      "hardware": [{"name": "dowel", "count": 4}],
+      "parts": ["side panel", "top panel"],
+      "warning": "Common mistake or caution for this step, or null",
+      "stuckHint": "If the user gets stuck on THIS step, the most likely problem and how to check/fix it",
+      "actionType": "insert",
       "direction": "down"
     }
   ]
 }
 
 Rules:
-- Produce 3 to 12 steps. Use the natural number for THIS product — do not pad.
-- For simple products (e.g. a household item with usage directions), fewer steps are better. Do not invent assembly steps that don't exist.
-- instruction = practical guidance ("Use one sheet per load; add a second for large loads"), not a flat copy of the label.
-- warning: surface real safety/caution notes from the text, else null.
-- duration: estimated seconds (2-15).
+- Extract EVERY real assembly step in order (furniture builds are often 6-20+ steps). Do not collapse or pad.
+- instruction = practical guidance ("Insert the 4 dowels into the pre-drilled holes on the side panel"), not a transcription.
+- hardware = the specific fasteners used in that step with counts, when shown. Empty array if none.
+- parts = the named panels/pieces involved in that step (1-3).
+- warning = a real common mistake or safety note (e.g. "Make sure the pre-drilled holes face inward"), else null.
+- stuckHint = anticipate the #1 confusion on this step (e.g. "If the panel won't sit flush, a dowel may not be fully seated — tap it in"). This is what we show when they tap 'I'm stuck'.
+- toolsNeeded = all tools needed across the whole build. hardwareSummary = total count of each fastener type.
+- duration = estimated seconds for the step.
 - actionType MUST be one of: ${VALID_ACTIONS.join(", ")}.
-- parts: 1-3 short part/item names if relevant, else [].
-- direction: primary motion or null.
+- direction = primary motion or null.
 - All text in ${langName}.
-- If the image is not instructions, describe what is reasonably shown — do not fabricate detailed steps.`;
+- If the images are clearly NOT a furniture manual, still produce your best step list from what's shown, and note it in interpretation.`;
 
     const parts: unknown[] = [];
     if (imageData) parts.push(buildMediaPart(imageData, mimeType));
@@ -246,20 +254,38 @@ Rules:
       number: typeof s.number === "number" ? s.number : i + 1,
       title: String(s.title || `Step ${i + 1}`),
       instruction: String(s.instruction || ""),
-      duration: typeof s.duration === "number" ? Math.max(2, Math.min(15, s.duration)) : 5,
+      duration: typeof s.duration === "number" ? Math.max(2, Math.min(600, s.duration)) : 60,
       tools: Array.isArray(s.tools) ? s.tools.map(String) : [],
       warning: s.warning ? String(s.warning) : null,
       actionType: VALID_ACTIONS.includes(s.actionType) ? s.actionType : inferActionType(s),
       parts: Array.isArray(s.parts) ? s.parts.map(String).slice(0, 3) : [],
       direction: VALID_DIRECTIONS.includes(s.direction as string) ? s.direction as Direction : null,
+      hardware: Array.isArray(s.hardware)
+        ? s.hardware
+            .filter((h) => h && typeof h === "object")
+            .map((h) => ({ name: String((h as { name?: unknown }).name ?? ""), count: Number((h as { count?: unknown }).count) || 1 }))
+            .slice(0, 6)
+        : [],
+      stuckHint: s.stuckHint ? String(s.stuckHint) : null,
     }));
+
+    const toolsNeeded = Array.isArray((analysisResult as { toolsNeeded?: unknown }).toolsNeeded)
+      ? ((analysisResult as { toolsNeeded: unknown[] }).toolsNeeded).map(String)
+      : [];
+    const hardwareSummary = Array.isArray((analysisResult as { hardwareSummary?: unknown }).hardwareSummary)
+      ? ((analysisResult as { hardwareSummary: unknown[] }).hardwareSummary)
+          .filter((h) => h && typeof h === "object")
+          .map((h) => ({ name: String((h as { name?: unknown }).name ?? ""), count: Number((h as { count?: unknown }).count) || 1 }))
+      : [];
 
     return json({
       success: true,
-      title: String(title || "Product Guide"),
+      title: String(title || "Assembly Guide"),
       interpretation: String(interpretation || ""),
       language,
       steps: normalizedSteps,
+      toolsNeeded,
+      hardwareSummary,
       promptUsed: prompt,
       isDemo: false,
       function: FUNCTION_NAME,
