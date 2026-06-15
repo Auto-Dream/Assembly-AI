@@ -30,7 +30,7 @@ interface Step {
   actionType: ActionType;
   parts: string[];
   direction: Direction;
-  hardware?: { name: string; count: number }[];
+  hardware?: { name: string; count: number; ref?: string }[];
   stuckHint?: string | null;
 }
 
@@ -149,7 +149,7 @@ Respond ONLY with valid JSON in this exact format — no markdown, no code fence
   "title": "What is being built (e.g. 'BILLY Bookcase')",
   "interpretation": "2-3 sentences: what they're building, roughly how long/how hard, and the single most important thing to get right or the most common mistake.",
   "toolsNeeded": ["screwdriver", "hammer"],
-  "hardwareSummary": [{"name": "wooden dowel", "count": 8}, {"name": "cam lock", "count": 6}],
+  "hardwareSummary": [{"name": "wooden dowel", "count": 8, "ref": "A"}, {"name": "cam lock", "count": 6, "ref": "B"}],
   "steps": [
     {
       "number": 1,
@@ -157,7 +157,7 @@ Respond ONLY with valid JSON in this exact format — no markdown, no code fence
       "instruction": "Clear hands-on instruction for THIS step, phrased as guidance (1-2 sentences).",
       "duration": 60,
       "tools": ["screwdriver"],
-      "hardware": [{"name": "dowel", "count": 4}],
+      "hardware": [{"name": "dowel", "count": 4, "ref": "A"}],
       "parts": ["side panel", "top panel"],
       "warning": "Common mistake or caution for this step, or null",
       "stuckHint": "If the user gets stuck on THIS step, the most likely problem and how to check/fix it",
@@ -169,8 +169,9 @@ Respond ONLY with valid JSON in this exact format — no markdown, no code fence
 
 Rules:
 - Extract EVERY real assembly step in order (furniture builds are often 6-20+ steps). Do not collapse or pad.
+- ONE PHYSICAL ACTION PER STEP. If a diagram bundles several joins (e.g. attach backrest AND connect frame AND fix post), SPLIT them into separate numbered steps. A step should be something the user can complete and check before moving on. Never cram multiple sub-assemblies into one step.
 - instruction = practical guidance ("Insert the 4 dowels into the pre-drilled holes on the side panel"), not a transcription.
-- hardware = the specific fasteners used in that step with counts, when shown. Empty array if none.
+- HARDWARE NAMING: "name" must be a plain human description of the fastener (e.g. "long bolt", "small washer", "Allen bolt") — NEVER put the manual's part-number inside the name. "count" is how many are used in THIS step. "ref" is the manual's part label/number for that item (e.g. "12", "A") or "" if none. Same rules for hardwareSummary (where count = total across the whole build).
 - parts = the named panels/pieces involved in that step (1-3).
 - warning = a real common mistake or safety note (e.g. "Make sure the pre-drilled holes face inward"), else null.
 - stuckHint = anticipate the #1 confusion on this step (e.g. "If the panel won't sit flush, a dowel may not be fully seated — tap it in"). This is what we show when they tap 'I'm stuck'.
@@ -263,7 +264,11 @@ Rules:
       hardware: Array.isArray(s.hardware)
         ? s.hardware
             .filter((h) => h && typeof h === "object")
-            .map((h) => ({ name: String((h as { name?: unknown }).name ?? ""), count: Number((h as { count?: unknown }).count) || 1 }))
+            .map((h) => ({
+              name: String((h as { name?: unknown }).name ?? ""),
+              count: Number((h as { count?: unknown }).count) || 1,
+              ref: (h as { ref?: unknown }).ref ? String((h as { ref?: unknown }).ref) : "",
+            }))
             .slice(0, 6)
         : [],
       stuckHint: s.stuckHint ? String(s.stuckHint) : null,
@@ -275,7 +280,11 @@ Rules:
     const hardwareSummary = Array.isArray((analysisResult as { hardwareSummary?: unknown }).hardwareSummary)
       ? ((analysisResult as { hardwareSummary: unknown[] }).hardwareSummary)
           .filter((h) => h && typeof h === "object")
-          .map((h) => ({ name: String((h as { name?: unknown }).name ?? ""), count: Number((h as { count?: unknown }).count) || 1 }))
+          .map((h) => ({
+            name: String((h as { name?: unknown }).name ?? ""),
+            count: Number((h as { count?: unknown }).count) || 1,
+            ref: (h as { ref?: unknown }).ref ? String((h as { ref?: unknown }).ref) : "",
+          }))
       : [];
 
     return json({

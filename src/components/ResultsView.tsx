@@ -86,7 +86,7 @@ export default function ResultsView({ result, onBack }: ResultsViewProps) {
                   <div className="flex flex-wrap gap-1.5">
                     {hardware.map((h, i) => (
                       <span key={i} className="text-xs text-slate-200 bg-slate-800 rounded-lg px-2.5 py-1">
-                        <span className="font-semibold text-white">{h.count}×</span> {h.name}
+                        <span className="font-semibold text-white">{h.count}×</span> {h.name}{h.ref ? <span className="text-slate-500"> ({h.ref})</span> : null}
                       </span>
                     ))}
                   </div>

@@ -4,6 +4,7 @@ export type Direction = "down" | "up" | "left" | "right" | "clockwise" | "counte
 export interface HardwareItem {
   name: string;
   count: number;
+  ref?: string;
 }
 
 export interface AssemblyStep {

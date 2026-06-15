@@ -85,7 +85,7 @@ export default function GuideMode({ steps, language, title, interpretation, imag
             <InfoChip
               icon={<CheckCircle2 size={14} />}
               label="Hardware"
-              items={step.hardware.map((h) => `${h.count}× ${h.name}`)}
+              items={step.hardware.map((h) => `${h.count}× ${h.name}${h.ref ? ` (${h.ref})` : ""}`)}
             />
           )}
         </div>
