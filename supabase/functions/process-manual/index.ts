@@ -61,13 +61,28 @@ async function callGemini(apiKey: string, parts: unknown[], opts: { json: boolea
       ...(opts.json ? { responseMimeType: "application/json" } : {}),
     },
   };
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const requestBody = JSON.stringify(body);
+
+  // Retry on transient overload (503) / rate-limit (429) with exponential backoff.
+  const MAX_ATTEMPTS = 4;
+  let res!: Response;
   let rawBody = "";
-  try { rawBody = await res.text(); } catch { rawBody = "(unreadable)"; }
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    res = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: requestBody,
+    });
+    try { rawBody = await res.text(); } catch { rawBody = "(unreadable)"; }
+
+    const transient = res.status === 503 || res.status === 429 || res.status === 500;
+    if (!transient || attempt === MAX_ATTEMPTS) break;
+
+    // backoff: 1s, 2s, 4s (+ small jitter)
+    const waitMs = 1000 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 400);
+    console.log(`[${FUNCTION_NAME}] Gemini ${res.status} (overload) — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${waitMs}ms`);
+    await new Promise((r) => setTimeout(r, waitMs));
+  }
   return { res, rawBody };
 }
 
@@ -193,6 +208,10 @@ Rules:
       let geminiMessage = `HTTP ${res.status}`;
       try { geminiMessage = JSON.parse(rawBody)?.error?.message || geminiMessage; }
       catch { geminiMessage = rawBody.slice(0, 300) || geminiMessage; }
+      // Friendlier message for transient overload
+      if (res.status === 503 || res.status === 429) {
+        geminiMessage = "The AI is busy right now (high demand). Please tap Generate again in a few seconds.";
+      }
       return json({ success: false, geminiStatus: res.status, geminiMessage, error: geminiMessage, function: FUNCTION_NAME });
     }
 
