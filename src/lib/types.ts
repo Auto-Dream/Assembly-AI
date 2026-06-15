@@ -19,6 +19,7 @@ export interface AssemblyStep {
   direction?: Direction;
   hardware?: HardwareItem[];
   stuckHint?: string | null;
+  crop?: { x: number; y: number; w: number; h: number } | null;
 }
 
 export interface Session {

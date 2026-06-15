@@ -6,6 +6,7 @@ import {
 import { AssemblyStep } from "../lib/types";
 import { getStepColor } from "../lib/utils";
 import AskProduct from "./AskProduct";
+import StepDiagram from "./StepDiagram";
 
 interface GuideModeProps {
   steps: AssemblyStep[];
@@ -72,6 +73,9 @@ export default function GuideMode({ steps, language, title, interpretation, imag
         </div>
 
         <p className="text-base sm:text-lg text-slate-200 leading-relaxed mb-6">{step.instruction}</p>
+
+        {/* Real manual diagram for this step, with animated direction arrow */}
+        <StepDiagram step={step} imageData={imageData} mimeType={mimeType} />
 
         {/* Parts / Tools / Hardware for THIS step */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">

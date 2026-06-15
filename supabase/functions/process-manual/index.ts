@@ -32,6 +32,7 @@ interface Step {
   direction: Direction;
   hardware?: { name: string; count: number; ref?: string }[];
   stuckHint?: string | null;
+  crop?: { x: number; y: number; w: number; h: number } | null;
 }
 
 const VALID_ACTIONS: ActionType[] = ["connect", "screw", "align", "insert", "attach", "rotate", "lift", "place", "tighten"];
@@ -57,7 +58,7 @@ async function callGemini(apiKey: string, parts: unknown[], opts: { json: boolea
     contents: [{ role: "user", parts }],
     generationConfig: {
       temperature: 0.2,
-      maxOutputTokens: opts.maxTokens ?? 8192,
+      maxOutputTokens: opts.maxTokens ?? 16384,
       ...(opts.json ? { responseMimeType: "application/json" } : {}),
     },
   };
@@ -177,7 +178,8 @@ Respond ONLY with valid JSON in this exact format — no markdown, no code fence
       "warning": "Common mistake or caution for this step, or null",
       "stuckHint": "If the user gets stuck on THIS step, the most likely problem and how to check/fix it",
       "actionType": "insert",
-      "direction": "down"
+      "direction": "down",
+      "crop": {"x": 0.0, "y": 0.33, "w": 0.25, "h": 0.3}
     }
   ]
 }
@@ -194,6 +196,7 @@ Rules:
 - duration = estimated seconds for the step.
 - actionType MUST be one of: ${VALID_ACTIONS.join(", ")}.
 - direction = primary motion or null.
+- crop = the location of THIS step's diagram/illustration within the image, as normalized coordinates (0.0-1.0): x,y = top-left corner, w,h = width,height as fractions of the full image. This lets the app show the user the exact picture for this step. If the manual has a grid of numbered step panels, give each step the box around ITS panel. If you cannot tell, use the whole image {"x":0,"y":0,"w":1,"h":1}. Be as accurate as you can — this is important.
 - All text in ${langName}.
 - If the images are clearly NOT a furniture manual, still produce your best step list from what's shown, and note it in interpretation.`;
 
@@ -291,6 +294,20 @@ Rules:
             .slice(0, 6)
         : [],
       stuckHint: s.stuckHint ? String(s.stuckHint) : null,
+      crop: (() => {
+        const c = (s as { crop?: unknown }).crop as { x?: unknown; y?: unknown; w?: unknown; h?: unknown } | undefined;
+        if (!c || typeof c !== "object") return null;
+        const num = (v: unknown, d: number) => {
+          const n = Number(v);
+          return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : d;
+        };
+        const x = num(c.x, 0), y = num(c.y, 0);
+        let w = num(c.w, 1), h = num(c.h, 1);
+        if (x + w > 1) w = 1 - x;
+        if (y + h > 1) h = 1 - y;
+        if (w <= 0.02 || h <= 0.02) return null; // too tiny to be useful
+        return { x, y, w, h };
+      })(),
     }));
 
     const toolsNeeded = Array.isArray((analysisResult as { toolsNeeded?: unknown }).toolsNeeded)
