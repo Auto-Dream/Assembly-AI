@@ -20,10 +20,16 @@ interface AskProductProps {
   stepContext?: string;
 }
 
-const SUGGESTED = [
-  "How do I use this?",
-  "Are there any warnings?",
-  "What does each ingredient do?",
+const SUGGESTED_GENERAL = [
+  "Which parts do I need first?",
+  "What tools should I have ready?",
+  "What's the most common mistake?",
+];
+
+const SUGGESTED_STUCK = [
+  "This part won't fit — what's wrong?",
+  "I have a leftover piece, is that a problem?",
+  "Which way does this piece face?",
 ];
 
 export default function AskProduct({ imageData, mimeType, language, interpretation, title, stepContext }: AskProductProps) {
@@ -120,7 +126,7 @@ export default function AskProduct({ imageData, mimeType, language, interpretati
 
       {history.length === 0 && (
         <div className="px-4 sm:px-5 pt-4 flex flex-wrap gap-2">
-          {SUGGESTED.map((s) => (
+          {(stepContext ? SUGGESTED_STUCK : SUGGESTED_GENERAL).map((s) => (
             <button
               key={s}
               onClick={() => ask(s)}
