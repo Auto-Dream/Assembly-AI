@@ -98,7 +98,6 @@ export default function UploadZone({ onFile, disabled }: UploadZoneProps) {
             ref={inputRef}
             type="file"
             accept={ACCEPTED.join(",")}
-            capture="environment"
             onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             className="hidden"
             disabled={disabled}

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircleQuestion, Send, Sparkles, AlertCircle } from "lucide-react";
-import { supabase } from "../lib/supabase";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
