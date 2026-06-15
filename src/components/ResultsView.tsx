@@ -18,11 +18,34 @@ function formatDuration(seconds: number): string {
 export default function ResultsView({ result, onBack }: ResultsViewProps) {
   const [showOverview, setShowOverview] = useState(true);
 
-  const totalDuration = getTotalDuration(result.steps);
+  const steps = Array.isArray(result.steps) ? result.steps : [];
+  const totalDuration = getTotalDuration(steps);
   const tools = result.toolsNeeded && result.toolsNeeded.length > 0
     ? result.toolsNeeded
-    : [...new Set(result.steps.flatMap((s) => s.tools))];
+    : [...new Set(steps.flatMap((s) => (Array.isArray(s.tools) ? s.tools : [])))];
   const hardware = result.hardwareSummary || [];
+
+  // Defensive: if the backend returned nothing usable, show a clear message instead of a blank screen.
+  if (steps.length === 0) {
+    return (
+      <main className="pt-16 min-h-screen">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm transition-all mb-6"
+          >
+            <ArrowLeft size={15} /> New
+          </button>
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center">
+            <h2 className="text-lg font-semibold text-white mb-2">{result.title || "Couldn't read the manual"}</h2>
+            <p className="text-sm text-slate-400">
+              {result.interpretation || "We couldn't extract clear steps from that image. Try a clearer photo, a different page, or upload the full PDF manual."}
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="pt-16 min-h-screen">
@@ -40,7 +63,7 @@ export default function ResultsView({ result, onBack }: ResultsViewProps) {
           <div className="flex-1 min-w-0">
             <h1 className="text-lg sm:text-xl font-bold text-white leading-snug">{result.title}</h1>
             <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-slate-500">
-              <span>{result.steps.length} steps</span>
+              <span>{steps.length} steps</span>
               <span className="text-slate-700">&middot;</span>
               <span>{formatDuration(totalDuration)}</span>
             </div>
@@ -98,7 +121,7 @@ export default function ResultsView({ result, onBack }: ResultsViewProps) {
 
         {/* THE GUIDE — primary experience */}
         <GuideMode
-          steps={result.steps}
+          steps={steps}
           language={result.language}
           title={result.title}
           interpretation={result.interpretation}

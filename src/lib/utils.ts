@@ -14,7 +14,8 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 export function getTotalDuration(steps: AssemblyStep[]): number {
-  return steps.reduce((sum, s) => sum + s.duration, 0);
+  if (!Array.isArray(steps)) return 0;
+  return steps.reduce((sum, s) => sum + (typeof s?.duration === "number" ? s.duration : 0), 0);
 }
 
 export function getStepColor(index: number): string {
